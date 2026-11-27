@@ -2,11 +2,10 @@
 /**
  * NexPG · cover generator
  *
- *   node gen.mjs   →   assets/cover-dark.svg + assets/cover-light.svg
+ *   node gen.mjs   →   assets/cover.svg
  *
- * Left side : transparent pixel wordmark (picks colours per GitHub theme).
- * Right side: 600×600 synthwave room — sunset behind venetian blinds,
- *             palm silhouette, CRT with a terminal.
+ * One 1280×600 canvas: a wide synthwave room — sunset behind venetian
+ * blinds, palm silhouettes, a CRT running a NexPG console, desk props.
  *
  * Pure vector: no webfonts, no scripts, no external files.
  */
@@ -76,6 +75,9 @@ const F5 = Object.fromEntries(
     "/": "00001,00010,00010,00100,01000,01000,10000",
     "-": "00000,00000,00000,11111,00000,00000,00000",
     ".": "00000,00000,00000,00000,00000,01100,01100",
+    "@": "01110,10001,10111,10101,10111,10000,01110",
+    "#": "01010,01010,11111,01010,11111,01010,01010",
+    "~": "00000,00000,01001,10110,00000,00000,00000",
     " ": "00000,00000,00000,00000,00000,00000,00000",
 
     // lowercase: x-height sits on rows 2–6, ascenders start on row 1
@@ -106,88 +108,6 @@ const F5 = Object.fromEntries(
     y: "00000,00000,10001,10001,01111,00001,01110",
     z: "00000,00000,11111,00010,00100,01000,11111",
   }).map(([k, v]) => [k, v.split(",")]),
-);
-
-// ── high-res wordmark font 9×13, drawn for "NexPG" ─────────────────────────
-const F13 = Object.fromEntries(
-  Object.entries({
-    N: [
-      "110000011",
-      "111000011",
-      "111100011",
-      "110110011",
-      "110011011",
-      "110001111",
-      "110000111",
-      "110000011",
-      "110000011",
-      "110000011",
-      "110000011",
-      "110000011",
-      "110000011",
-    ],
-    e: [
-      "000000000",
-      "000000000",
-      "000000000",
-      "000000000",
-      "001111100",
-      "011000110",
-      "110000011",
-      "111111111",
-      "110000000",
-      "110000000",
-      "110000011",
-      "011000110",
-      "001111100",
-    ],
-    x: [
-      "000000000",
-      "000000000",
-      "000000000",
-      "000000000",
-      "110000011",
-      "011000110",
-      "001101100",
-      "000111000",
-      "000111000",
-      "000111000",
-      "001101100",
-      "011000110",
-      "110000011",
-    ],
-    P: [
-      "011111100",
-      "110000110",
-      "110000011",
-      "110000011",
-      "110000011",
-      "110000110",
-      "111111100",
-      "110000000",
-      "110000000",
-      "110000000",
-      "110000000",
-      "110000000",
-      "110000000",
-    ],
-    G: [
-      "001111100",
-      "011000110",
-      "110000011",
-      "110000000",
-      "110000000",
-      "110000000",
-      "110011111",
-      "110000011",
-      "110000011",
-      "110000011",
-      "110000011",
-      "011000110",
-      "001111100",
-    ],
-    " ": Array(13).fill("000000000"),
-  }).map(([k, v]) => [k, v]),
 );
 
 function layout(text, font, gapCols = 1, upper = true) {
@@ -255,41 +175,51 @@ function frond(L, droop, n = 12, thick = 1) {
 function palm(x, baseY, height, lean, scale = 1, fill = "#170513") {
   const topX = x + lean;
   const topY = baseY - height;
-  const tw = 8 * scale;
+  const tw = 12 * scale;
   const trunk = `<path d="M${x - tw * 1.5} ${baseY}C${x - tw * 0.2} ${baseY - height * 0.55} ${topX - tw * 1.2} ${topY + height * 0.3} ${topX - tw * 0.7} ${topY}L${topX + tw * 0.7} ${topY}C${topX + tw * 1.2} ${topY + height * 0.28} ${x + tw * 0.6} ${baseY - height * 0.45} ${x + tw * 1.5} ${baseY}Z"/>`;
-  const angles = [-178, -161, -144, -127, -110, -93, -76, -59, -42, -25, -8];
+  const angles = [-184, -169, -154, -139, -124, -109, -94, -79, -64, -49, -34, -19, -4];
   const fronds = angles
     .map((a, i) => {
-      const L = (104 + Math.abs(Math.sin(a * 2.1)) * 46 + (i % 2) * 10) * scale;
+      const L = (116 + Math.abs(Math.sin(a * 2.1)) * 46 + (i % 3) * 9) * scale;
       // keep the arch pointing down in world space, whatever the frond angle
-      const droop = 40 * Math.cos((a * Math.PI) / 180) * scale;
-      return `<path d="${frond(L, droop, 14, 0.8)}" transform="translate(${topX} ${topY}) rotate(${a})"/>`;
+      const droop = 46 * Math.cos((a * Math.PI) / 180) * scale;
+      return `<path d="${frond(L, droop, 15, 0.85)}" transform="translate(${topX} ${topY}) rotate(${a})"/>`;
     })
     .join("");
-  return `<g fill="${fill}">${trunk}<ellipse cx="${topX}" cy="${topY}" rx="${13 * scale}" ry="${10 * scale}"/>${fronds}</g>`;
+  return `<g fill="${fill}">${trunk}<ellipse cx="${topX}" cy="${topY}" rx="${16 * scale}" ry="${12 * scale}"/>${fronds}</g>`;
 }
 
 function scene() {
   const GREEN = "#7dffb2";
+  const W = 1280;
+  const CX = (W - 600) / 2; // the original 600×600 composition, centred
 
   // the joke: the classic call flipped inside out — HELLO WORLD is the
-  // function, "PRINT!" is its argument
-  const t1 = layout("> HELLO WORLD(", F5);
-  const t2 = layout('"PRINT!")', F5);
-  const t3 = layout(">", F5);
-  const LINE_X = 103;
-  const LINE_Y = 232;
-  const LINE_S = 2;
-  const STR_X = LINE_X + 14 * 6 * LINE_S;
+  // function, "PRINT!" is its argument — run from a NexPG admin console
+  const cmdA = layout("HELLO WORLD(", F5);
+  const cmdB = layout('"PRINT!")', F5);
+  const out = layout("PRINT!", F5);
+  const prompt = layout(`${CFG.name}@console:~#`, F5, 1, false);
+  const CMD_X = 103;
+  const CMD_Y = 214;
+  const CMD_S = 2;
+  const STR_X = CMD_X + 12 * 6 * CMD_S;
+  const OUT_X = 103;
+  const OUT_Y = 244;
+  const PROMPT_X = 103;
+  const PROMPT_Y = 304;
 
-  const sky = `<rect width="600" height="${DESK}" fill="url(#sc_sky)"/>`;
+  const sky = `<rect width="${W}" height="${DESK}" fill="url(#sc_sky)"/>`;
 
   const sun = `
-    <circle cx="462" cy="238" r="270" fill="url(#sc_bloom)"/>
-    <circle cx="462" cy="238" r="140" fill="url(#sc_sun)"/>`;
+    <circle cx="${CX + 462}" cy="238" r="300" fill="url(#sc_bloom)"/>
+    <circle cx="${CX + 462}" cy="238" r="140" fill="url(#sc_sun)"/>`;
 
-  // palm outside the window, standing at the right edge
-  const palms = palm(612, 476, 300, -58, 1, "#1a0616");
+  // palms outside the window: two framing the wide room, one behind the CRT
+  const palms = [
+    palm(-6, 476, 300, 62, 1, "#1a0616"),
+    palm(1000, 476, 310, -56, 1.02, "#1a0616"),
+  ].join("");
 
   // venetian blinds: the window shows through the gaps at full brightness,
   // the slats themselves are solid — that is what makes the sun read
@@ -302,35 +232,41 @@ function scene() {
   const slats = gaps
     .map(
       ([y]) =>
-        `<rect x="0" y="${y - SLAT}" width="600" height="${SLAT}" fill="#1b0515"/>`,
+        `<rect x="0" y="${y - SLAT}" width="${W}" height="${SLAT}" fill="#1b0515"/>`,
     )
     .join("");
   const slatGlow = gaps
     .map(
       ([y]) =>
-        `<rect x="0" y="${y - 2.2}" width="600" height="2.2" fill="#ffb07a" opacity=".4"/>`,
+        `<rect x="0" y="${y - 2.2}" width="${W}" height="2.2" fill="#ffb07a" opacity=".4"/>`,
     )
     .join("");
   const gapMask = gaps
     .map(
       ([y, h]) =>
-        `<rect x="0" y="${y}" width="600" height="${h}" fill="#fff"/>`,
+        `<rect x="0" y="${y}" width="${W}" height="${h}" fill="#fff"/>`,
     )
     .join("");
 
-  const cords = `<rect x="196" width="1.5" height="${DESK}" fill="#0b0208" opacity=".45"/><rect x="404" width="1.5" height="${DESK}" fill="#0b0208" opacity=".45"/>`;
+  const cords = [160, 480, 800, 1120]
+    .map(
+      (x) =>
+        `<rect x="${x}" width="1.5" height="${DESK}" fill="#0b0208" opacity=".45"/>`,
+    )
+    .join("");
 
   const frame = `
-    <rect x="0" y="${DESK - 10}" width="600" height="10" fill="#10030d"/>
-    <rect x="0" y="${DESK - 10}" width="600" height="2" fill="#ffb066" opacity=".35"/>`;
+    <rect x="0" y="${DESK - 10}" width="${W}" height="10" fill="#10030d"/>
+    <rect x="0" y="${DESK - 10}" width="${W}" height="2" fill="#ffb066" opacity=".35"/>`;
 
   const desk = `
-    <rect x="0" y="${DESK}" width="600" height="${600 - DESK}" fill="url(#sc_desk)"/>
-    <rect x="0" y="${DESK}" width="600" height="${600 - DESK}" fill="url(#sc_pool)"/>
-    <rect x="0" y="${DESK}" width="600" height="3" fill="#ffd0a0" opacity=".22"/>
-    <ellipse cx="330" cy="446" rx="320" ry="60" fill="#ff7a3a" opacity=".16" filter="url(#sc_b18)"/>
-    <ellipse cx="206" cy="478" rx="150" ry="30" fill="#00ff99" opacity=".12" filter="url(#sc_b18)"/>
-    <rect x="0" y="580" width="600" height="1.5" fill="#ff9a5a" opacity=".14"/>`;
+    <rect x="0" y="${DESK}" width="${W}" height="${600 - DESK}" fill="url(#sc_desk)"/>
+    <rect x="0" y="${DESK}" width="${W}" height="${600 - DESK}" fill="url(#sc_pool)"/>
+    <rect x="0" y="${DESK}" width="${W}" height="3" fill="#ffd0a0" opacity=".22"/>
+    <ellipse cx="${CX + 330}" cy="446" rx="320" ry="60" fill="#ff7a3a" opacity=".16" filter="url(#sc_b18)"/>
+    <ellipse cx="${CX + 206}" cy="478" rx="150" ry="30" fill="#00ff99" opacity=".12" filter="url(#sc_b18)"/>
+    <ellipse cx="270" cy="500" rx="230" ry="46" fill="#ff6a3a" opacity=".1" filter="url(#sc_b18)"/>
+    <rect x="0" y="580" width="${W}" height="1.5" fill="#ff9a5a" opacity=".14"/>`;
 
   const monitor = `
     <ellipse cx="240" cy="${DESK + 20}" rx="180" ry="18" fill="#000" opacity=".55" filter="url(#sc_b10)"/>
@@ -349,11 +285,13 @@ function scene() {
       <rect x="90" y="162" width="300" height="212" fill="url(#sc_crt)"/>
       <rect x="90" y="162" width="300" height="212" fill="url(#sc_crtglow)"/>
 
-      <g filter="url(#sc_b4)" opacity="1">${pixels(t1, LINE_S, LINE_X, LINE_Y, `fill="#8dffbf"`)}${pixels(t2, LINE_S, STR_X, LINE_Y, `fill="#ff2e88"`)}</g>
-      ${pixels(t1, LINE_S, LINE_X, LINE_Y, `fill="#e6fff2"`)}
-      ${pixels(t2, LINE_S, STR_X, LINE_Y, `fill="#ffd6ea"`)}
-      ${pixels(t3, LINE_S, LINE_X, 296, `fill="#63d79e"`)}
-      <rect x="${LINE_X + t3.w * LINE_S + 6}" y="296" width="12" height="14" fill="${GREEN}">
+      <g filter="url(#sc_b4)" opacity="1">${pixels(cmdA, CMD_S, CMD_X, CMD_Y, `fill="#8dffbf"`)}${pixels(cmdB, CMD_S, STR_X, CMD_Y, `fill="#ff2e88"`)}</g>
+      ${pixels(cmdA, CMD_S, CMD_X, CMD_Y, `fill="#e6fff2"`)}
+      ${pixels(cmdB, CMD_S, STR_X, CMD_Y, `fill="#ffd6ea"`)}
+      <g filter="url(#sc_b4)" opacity=".85">${pixels(out, 4, OUT_X, OUT_Y, `fill="#7dffb2"`)}</g>
+      ${pixels(out, 4, OUT_X, OUT_Y, `fill="#d9ffe9"`)}
+      ${pixels(prompt, 2, PROMPT_X, PROMPT_Y, `fill="#7dffb2" opacity=".92"`)}
+      <rect x="${PROMPT_X + prompt.w * 2 + 6}" y="${PROMPT_Y}" width="12" height="14" fill="${GREEN}">
         <animate attributeName="opacity" values="1;1;0;0;1" keyTimes="0;.48;.52;.96;1" dur="1.15s" repeatCount="indefinite"/>
       </rect>
 
@@ -399,9 +337,31 @@ function scene() {
         .join("")}
     </g>`;
 
+  // small things on the desk, left and right of the CRT
+  const props = `
+    <ellipse cx="314" cy="556" rx="44" ry="8" fill="#000" opacity=".45" filter="url(#sc_b10)"/>
+    <path d="M284 506h60v31a16 16 0 0 1-16 16h-28a16 16 0 0 1-16-16z" fill="url(#sc_body)"/>
+    <path d="M344 514h6a18 18 0 0 1 0 36h-6" fill="none" stroke="#d9bb97" stroke-width="7"/>
+    <ellipse cx="314" cy="506" rx="30" ry="8" fill="#2a0d1c"/>
+    <ellipse cx="314" cy="504" rx="24" ry="6" fill="#4a1a2b"/>
+    <path d="M301 494c-5-9 5-11 0-20M319 492c-5-9 5-11 0-20" stroke="#ffb9a0" stroke-width="2.4" fill="none" opacity=".26"/>
+
+    <g transform="rotate(-5 186 532)">
+      <rect x="140" y="508" width="92" height="52" rx="4" fill="#2c1024" stroke="#ff9a5a" stroke-opacity=".22"/>
+      <rect x="148" y="515" width="76" height="22" rx="3" fill="#e9cba8" opacity=".9"/>
+      <rect x="148" y="542" width="76" height="9" rx="2" fill="#1d0a17"/>
+      <circle cx="166" cy="546" r="6" fill="#43202f" stroke="#e9cba8" stroke-opacity=".45"/>
+      <circle cx="198" cy="546" r="6" fill="#43202f" stroke="#e9cba8" stroke-opacity=".45"/>
+    </g>
+
+    <ellipse cx="1108" cy="552" rx="70" ry="9" fill="#000" opacity=".4" filter="url(#sc_b10)"/>
+    <rect x="1052" y="528" width="112" height="13" rx="2" fill="#3a1530" stroke="#ff8a5a" stroke-opacity=".2"/>
+    <rect x="1060" y="515" width="96" height="13" rx="2" fill="#4a1a34" stroke="#ff8a5a" stroke-opacity=".2"/>
+    <rect x="1056" y="502" width="104" height="13" rx="2" fill="#2c1024" stroke="#ff8a5a" stroke-opacity=".2"/>`;
+
   const rand = rng(CFG.seed);
-  const dust = Array.from({ length: 34 }, () => {
-    const x = 20 + rand() * 560;
+  const dust = Array.from({ length: 64 }, () => {
+    const x = 20 + rand() * (W - 40);
     const y = 30 + rand() * 390;
     const r = 0.7 + rand() * 1.4;
     const o = 0.08 + rand() * 0.3;
@@ -409,9 +369,9 @@ function scene() {
   }).join("");
 
   return `<defs>
-  <clipPath id="sc_sq"><rect width="600" height="600"/></clipPath>
-  <mask id="sc_gaps" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="${DESK}">
-    <rect width="600" height="${DESK}" fill="#000"/>
+  <clipPath id="sc_sq"><rect width="${W}" height="600"/></clipPath>
+  <mask id="sc_gaps" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${DESK}">
+    <rect width="${W}" height="${DESK}" fill="#000"/>
     ${gapMask}
   </mask>
 
@@ -507,88 +467,30 @@ function scene() {
   ${slats}
   ${slatGlow}
   ${cords}
-  <rect width="600" height="${DESK}" fill="url(#sc_warm)" opacity=".38"/>
+  <rect width="${W}" height="${DESK}" fill="url(#sc_warm)" opacity=".38"/>
   ${frame}
   ${desk}
   ${dust}
-  <g transform="translate(-38 0)">${monitor}${kb}</g>
-  ${plant}
-  <rect width="600" height="600" filter="url(#sc_grain)" opacity=".05"/>
-  <rect width="600" height="600" fill="url(#sc_vig)"/>
+  ${props}
+  <g transform="translate(${CX - 38} 0)">${monitor}${kb}</g>
+  <g transform="translate(${CX} 0)">${plant}</g>
+  <rect width="${W}" height="600" filter="url(#sc_grain)" opacity=".05"/>
+  <rect width="${W}" height="600" fill="url(#sc_vig)"/>
 </g>
-<rect x="1" y="1" width="598" height="598" fill="none" stroke="#ff3e9d" stroke-opacity=".45" stroke-width="2"/>`;
-}
-
-// ── wordmark ───────────────────────────────────────────────────────────────
-function wordmark(theme) {
-  const S = 10;
-  const areaW = 680;
-  const lay = layout(CFG.name, F13, 2, false);
-  const wmW = lay.w * S;
-  const wmH = lay.h * S;
-  const x = Math.round((areaW - wmW) / 2);
-  const y = Math.round((600 - wmH) / 2);
-
-  const dark = theme === "dark";
-  const grad = dark
-    ? `<linearGradient id="wm_g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="${wmH}">
-         <stop offset="0" stop-color="#fff7fd"/>
-         <stop offset=".26" stop-color="#ffd9f0"/>
-         <stop offset=".58" stop-color="#ff5fb6"/>
-         <stop offset="1" stop-color="#ff1f7d"/>
-       </linearGradient>`
-    : `<linearGradient id="wm_g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="${wmH}">
-         <stop offset="0" stop-color="#c60f66"/>
-         <stop offset=".55" stop-color="#ff3d86"/>
-         <stop offset="1" stop-color="#ff8a3d"/>
-       </linearGradient>`;
-
-  const clipRects = lay.rects
-    .map(
-      ([gx, gy, gw]) =>
-        `<rect x="${x + gx * S}" y="${y + gy * S}" width="${gw * S}" height="${S}"/>`,
-    )
-    .join("");
-
-  const glow = dark
-    ? `<g filter="url(#wm_glow)" fill="#ff2e88" opacity=".9">${pixels(lay, S, x, y)}</g>`
-    : `<g fill="#ffc9de" opacity=".9">${pixels(lay, S, x, y, "", 7, 9)}</g>`;
-
-  // VHS: cyan fringe left, magenta fringe right, plus a wide tape smear
-  const ghosts = dark
-    ? `<g fill="#00e0ff" opacity=".34">${pixels(lay, S, x, y, "", -5, 0)}</g>
-       <g fill="#ff2f8f" opacity=".4">${pixels(lay, S, x, y, "", 5, 0)}</g>
-       <g fill="#ff2f8f" opacity=".14">${pixels(lay, S, x, y, "", 18, 0)}</g>`
-    : `<g fill="#00b9cf" opacity=".26">${pixels(lay, S, x, y, "", -5, 0)}</g>
-       <g fill="#ff3d86" opacity=".3">${pixels(lay, S, x, y, "", 5, 0)}</g>
-       <g fill="#ff3d86" opacity=".1">${pixels(lay, S, x, y, "", 16, 0)}</g>`;
-
-  return `<defs>
-${grad}
-<clipPath id="wm_clip">${clipRects}</clipPath>
-<pattern id="wm_scan" width="4" height="4" patternUnits="userSpaceOnUse">
-  <rect width="4" height="1" fill="#000"/>
-</pattern>
-${dark ? `<filter id="wm_glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="15"/></filter>` : ""}
-</defs>
-${glow}
-${ghosts}
-<g fill="url(#wm_g)">${pixels(lay, S, x, y)}</g>
-<g clip-path="url(#wm_clip)"><rect x="${x}" y="${y}" width="${wmW}" height="${wmH}" fill="url(#wm_scan)" opacity=".1"/></g>`;
+<rect x="1" y="1" width="${W - 2}" height="598" fill="none" stroke="#ff3e9d" stroke-opacity=".45" stroke-width="2"/>`;
 }
 
 // ── cover ──────────────────────────────────────────────────────────────────
-function cover(theme) {
+function cover() {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 600" width="1280" height="600" role="img" aria-label="${CFG.name}">
-${wordmark(theme)}
-<g transform="translate(680 0)">${scene()}</g>
+${scene()}
 </svg>
 `;
 }
 
-for (const f of ["hero.svg", "strip.svg"]) rmSync(resolve(OUT, f), { force: true });
-for (const theme of ["dark", "light"]) {
-  const svg = cover(theme);
-  writeFileSync(resolve(OUT, `cover-${theme}.svg`), svg);
-  console.log(`✓ assets/cover-${theme}.svg  ${(svg.length / 1024).toFixed(1)} kB`);
+for (const f of ["cover-dark.svg", "cover-light.svg", "hero.svg", "strip.svg"]) {
+  rmSync(resolve(OUT, f), { force: true });
 }
+const svg = cover();
+writeFileSync(resolve(OUT, "cover.svg"), svg);
+console.log(`✓ assets/cover.svg  ${(svg.length / 1024).toFixed(1)} kB`);
